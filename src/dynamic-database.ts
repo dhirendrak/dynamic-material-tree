@@ -23,6 +23,15 @@ export class DynamicDatabase {
     return this.dataMap.get(node);
   }
 
+  getChildrenAsync(node: string): Promise<string[] | undefined> {
+    return new Promise((resolve) => {
+      // Simulate API delay
+      setTimeout(() => {
+        resolve(this.dataMap.get(node));
+      }, 1000);
+    });
+  }
+
   isExpandable(node: string): boolean {
     return this.dataMap.has(node);
   }

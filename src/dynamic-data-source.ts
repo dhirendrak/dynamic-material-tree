@@ -177,6 +177,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     parentNode: DynamicFlatNode,
     dataArray: DynamicFlatNode[]
   ): void {
+    // Use synchronous method for already loaded data during refresh operations
     const children = this._database.getChildren(parentNode.item);
     if (!children) return;
 
@@ -210,7 +211,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     }
     this.data.splice(parentIndex + 1, childCount);
 
-    // Add updated children
+    // Add updated children (use synchronous method for refresh operations)
     const children = this._database.getChildren(parentNode.item);
     if (children) {
       const nodes = children.map(
@@ -274,40 +275,45 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   /**
    * Toggle the node, remove from display list
    */
-  toggleNode(node: DynamicFlatNode, expand: boolean) {
-    const children = this._database.getChildren(node.item);
+  async toggleNode(node: DynamicFlatNode, expand: boolean) {
     const index = this.data.indexOf(node);
-    if (!children || index < 0) {
-      // If no children, or cannot find the node, no op
+    if (index < 0) {
+      // Cannot find the node, no op
       return;
     }
 
-    node.isLoading.set(true);
+    if (expand) {
+      node.isLoading.set(true);
 
-    setTimeout(() => {
-      if (expand) {
-        const nodes = children.map(
-          (name) =>
-            new DynamicFlatNode(
-              name,
-              node.level + 1,
-              this._database.isExpandable(name)
-            )
-        );
-        this.data.splice(index + 1, 0, ...nodes);
-      } else {
-        let count = 0;
-        for (
-          let i = index + 1;
-          i < this.data.length && this.data[i].level > node.level;
-          i++, count++
-        ) {}
-        this.data.splice(index + 1, count);
+      try {
+        const children = await this._database.getChildrenAsync(node.item);
+
+        if (children) {
+          const nodes = children.map(
+            (name) =>
+              new DynamicFlatNode(
+                name,
+                node.level + 1,
+                this._database.isExpandable(name)
+              )
+          );
+          this.data.splice(index + 1, 0, ...nodes);
+        }
+      } finally {
+        node.isLoading.set(false);
       }
+    } else {
+      // Collapse - no async needed
+      let count = 0;
+      for (
+        let i = index + 1;
+        i < this.data.length && this.data[i].level > node.level;
+        i++, count++
+      ) {}
+      this.data.splice(index + 1, count);
+    }
 
-      // notify the change
-      this.dataChange.next(this.data);
-      node.isLoading.set(false);
-    }, 1000);
+    // notify the change
+    this.dataChange.next(this.data);
   }
 }
