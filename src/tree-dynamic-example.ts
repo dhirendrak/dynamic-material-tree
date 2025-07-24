@@ -64,7 +64,6 @@ import { DynamicFlatNode } from "./dynamic-flat-node";
       <mat-tree-node
         *matTreeNodeDef="let node; when: hasChild"
         matTreeNodePadding
-        matTreeNodeToggle
         [cdkTreeNodeTypeaheadLabel]="node.item"
         cdkDrag
         [cdkDragData]="node"
