@@ -27,8 +27,6 @@ export class DynamicFlatNode {
  */
 @Component({
   selector: "tree-dynamic-example",
-  templateUrl: "tree-dynamic-example.html",
-  styleUrl: "tree-dynamic-example.css",
   standalone: true,
   imports: [
     MatTreeModule,
@@ -37,6 +35,44 @@ export class DynamicFlatNode {
     MatProgressBarModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
+      <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
+        <button mat-icon-button disabled></button>
+        {{ node.item }}
+      </mat-tree-node>
+      <mat-tree-node
+        *matTreeNodeDef="let node; when: hasChild"
+        matTreeNodePadding
+        matTreeNodeToggle
+        [cdkTreeNodeTypeaheadLabel]="node.item"
+      >
+        <button
+          mat-icon-button
+          [attr.aria-label]="'Toggle ' + node.item"
+          matTreeNodeToggle
+        >
+          <mat-icon class="mat-icon-rtl-mirror">
+            {{ treeControl.isExpanded(node) ? "expand_more" : "chevron_right" }}
+          </mat-icon>
+        </button>
+        {{ node.item }}
+        @if (node.isLoading()) {
+        <mat-progress-bar
+          mode="indeterminate"
+          class="example-tree-progress-bar"
+        ></mat-progress-bar>
+        }
+      </mat-tree-node>
+    </mat-tree>
+  `,
+  styles: [
+    `
+      .example-tree-progress-bar {
+        margin-left: 30px;
+      }
+    `,
+  ],
 })
 export class TreeDynamicExample {
   constructor() {
@@ -61,7 +97,3 @@ export class TreeDynamicExample {
 
   hasChild = (_: number, _nodeData: DynamicFlatNode) => _nodeData.expandable;
 }
-
-/**  Copyright 2025 Google LLC. All Rights Reserved.
-    Use of this source code is governed by an MIT-style license that
-    can be found in the LICENSE file at https://angular.io/license */
