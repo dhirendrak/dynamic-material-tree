@@ -6,8 +6,8 @@ import {
 import { FlatTreeControl } from "@angular/cdk/tree";
 import { BehaviorSubject, merge, Observable } from "rxjs";
 import { map } from "rxjs/operators";
-import { DynamicFlatNode } from "./tree-dynamic-example";
 import { DynamicDatabase } from "./dynamic-database";
+import { DynamicFlatNode } from "./dynamic-flat-node";
 
 /**
  * File database, it can build a tree structured Json object from string.
@@ -51,39 +51,57 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
   addChildNode(parentNode: DynamicFlatNode, newChildName: string): void {
     this._database.addChild(parentNode.item, newChildName);
-    
+
     // Only refresh if parent is currently expanded
     if (this._treeControl.isExpanded(parentNode)) {
       this.refreshParentChildren(parentNode);
     }
   }
 
-  moveNode(nodeToMove: DynamicFlatNode, newParentNode: DynamicFlatNode, oldParentNode: DynamicFlatNode, index?: number): void {
+  moveNode(
+    nodeToMove: DynamicFlatNode,
+    newParentNode: DynamicFlatNode,
+    oldParentNode: DynamicFlatNode,
+    index?: number
+  ): void {
     // Handle virtual root node
-    const newParentKey = newParentNode.item === '__ROOT__' ? '__ROOT__' : newParentNode.item;
-    const oldParentKey = oldParentNode.item === '__ROOT__' ? '__ROOT__' : oldParentNode.item;
-    
-    if (newParentKey === '__ROOT__') {
+    const newParentKey =
+      newParentNode.item === "__ROOT__" ? "__ROOT__" : newParentNode.item;
+    const oldParentKey =
+      oldParentNode.item === "__ROOT__" ? "__ROOT__" : oldParentNode.item;
+
+    if (newParentKey === "__ROOT__") {
       // Moving to root level
       this.moveToRootLevel(nodeToMove, oldParentKey, index);
     } else {
-      this._database.moveNode(nodeToMove.item, newParentKey, oldParentKey, index);
+      this._database.moveNode(
+        nodeToMove.item,
+        newParentKey,
+        oldParentKey,
+        index
+      );
     }
-    
+
     // Remove node and its descendants from current position
     this.removeNodeFromDisplay(nodeToMove);
-    
+
     // Refresh old parent's children if expanded (skip virtual root)
-    if (oldParentNode.item !== '__ROOT__' && this._treeControl.isExpanded(oldParentNode)) {
+    if (
+      oldParentNode.item !== "__ROOT__" &&
+      this._treeControl.isExpanded(oldParentNode)
+    ) {
       this.refreshParentChildren(oldParentNode);
-    } else if (oldParentNode.item === '__ROOT__') {
+    } else if (oldParentNode.item === "__ROOT__") {
       this.refreshRootLevel();
     }
-    
+
     // Refresh new parent's children if expanded (skip virtual root)
-    if (newParentNode.item !== '__ROOT__' && this._treeControl.isExpanded(newParentNode)) {
+    if (
+      newParentNode.item !== "__ROOT__" &&
+      this._treeControl.isExpanded(newParentNode)
+    ) {
       this.refreshParentChildren(newParentNode);
-    } else if (newParentNode.item === '__ROOT__') {
+    } else if (newParentNode.item === "__ROOT__") {
       this.refreshRootLevel();
     }
   }
@@ -91,19 +109,23 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   removeNode(nodeToRemove: DynamicFlatNode): void {
     const parentNode = this.findParentNode(nodeToRemove);
     this._database.removeNode(nodeToRemove.item);
-    
+
     // Remove from display
     this.removeNodeFromDisplay(nodeToRemove);
-    
+
     // Refresh parent if expanded
     if (parentNode && this._treeControl.isExpanded(parentNode)) {
       this.refreshParentChildren(parentNode);
     }
   }
 
-  private moveToRootLevel(nodeToMove: DynamicFlatNode, oldParentKey: string, index?: number): void {
+  private moveToRootLevel(
+    nodeToMove: DynamicFlatNode,
+    oldParentKey: string,
+    index?: number
+  ): void {
     // Remove from old parent
-    if (oldParentKey !== '__ROOT__') {
+    if (oldParentKey !== "__ROOT__") {
       const oldParentChildren = this._database.dataMap.get(oldParentKey);
       if (oldParentChildren) {
         const oldIndex = oldParentChildren.indexOf(nodeToMove.item);
@@ -118,9 +140,13 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
         this._database.rootLevelNodes.splice(rootIndex, 1);
       }
     }
-    
+
     // Add to root level at specific index
-    if (index !== undefined && index >= 0 && index <= this._database.rootLevelNodes.length) {
+    if (
+      index !== undefined &&
+      index >= 0 &&
+      index <= this._database.rootLevelNodes.length
+    ) {
       this._database.rootLevelNodes.splice(index, 0, nodeToMove.item);
     } else {
       this._database.rootLevelNodes.push(nodeToMove.item);
@@ -130,32 +156,39 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   private refreshRootLevel(): void {
     // Rebuild the entire data array starting with root nodes
     const newData: DynamicFlatNode[] = [];
-    
-    this._database.rootLevelNodes.forEach(rootName => {
-      const rootNode = new DynamicFlatNode(rootName, 0, this._database.isExpandable(rootName));
+
+    this._database.rootLevelNodes.forEach((rootName) => {
+      const rootNode = new DynamicFlatNode(
+        rootName,
+        0,
+        this._database.isExpandable(rootName)
+      );
       newData.push(rootNode);
-      
+
       // If root node is expanded, add its children
       if (this._treeControl.isExpanded(rootNode)) {
         this.addExpandedChildren(rootNode, newData);
       }
     });
-    
+
     this.data = newData;
   }
 
-  private addExpandedChildren(parentNode: DynamicFlatNode, dataArray: DynamicFlatNode[]): void {
+  private addExpandedChildren(
+    parentNode: DynamicFlatNode,
+    dataArray: DynamicFlatNode[]
+  ): void {
     const children = this._database.getChildren(parentNode.item);
     if (!children) return;
-    
-    children.forEach(childName => {
+
+    children.forEach((childName) => {
       const childNode = new DynamicFlatNode(
         childName,
         parentNode.level + 1,
         this._database.isExpandable(childName)
       );
       dataArray.push(childNode);
-      
+
       // Recursively add expanded children
       if (this._treeControl.isExpanded(childNode)) {
         this.addExpandedChildren(childNode, dataArray);
@@ -169,7 +202,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
     // Remove existing children
     let childCount = 0;
-    for (let i = parentIndex + 1; i < this.data.length && this.data[i].level > parentNode.level; i++) {
+    for (
+      let i = parentIndex + 1;
+      i < this.data.length && this.data[i].level > parentNode.level;
+      i++
+    ) {
       childCount++;
     }
     this.data.splice(parentIndex + 1, childCount);
@@ -178,11 +215,12 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     const children = this._database.getChildren(parentNode.item);
     if (children) {
       const nodes = children.map(
-        (name) => new DynamicFlatNode(
-          name,
-          parentNode.level + 1,
-          this._database.isExpandable(name)
-        )
+        (name) =>
+          new DynamicFlatNode(
+            name,
+            parentNode.level + 1,
+            this._database.isExpandable(name)
+          )
       );
       this.data.splice(parentIndex + 1, 0, ...nodes);
     }
@@ -196,7 +234,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
     // Count descendants to remove
     let count = 1; // Include the node itself
-    for (let i = nodeIndex + 1; i < this.data.length && this.data[i].level > node.level; i++) {
+    for (
+      let i = nodeIndex + 1;
+      i < this.data.length && this.data[i].level > node.level;
+      i++
+    ) {
       count++;
     }
 

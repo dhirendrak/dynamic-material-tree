@@ -6,28 +6,14 @@ import {
   CdkDragHandle,
   CdkDragPlaceholder,
 } from "@angular/cdk/drag-drop";
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  signal,
-} from "@angular/core";
+import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
 import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatTreeModule } from "@angular/material/tree";
 import { DynamicDatabase } from "./dynamic-database";
 import { DynamicDataSource } from "./dynamic-data-source";
-
-/** Flat node with expandable and level information */
-export class DynamicFlatNode {
-  constructor(
-    public item: string,
-    public level = 1,
-    public expandable = false,
-    public isLoading = signal(false)
-  ) {}
-}
+import { DynamicFlatNode } from "./dynamic-flat-node";
 
 /**
  * @title Tree with dynamic data
@@ -47,16 +33,16 @@ export class DynamicFlatNode {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <mat-tree 
-      [dataSource]="dataSource" 
+    <mat-tree
+      [dataSource]="dataSource"
       [treeControl]="treeControl"
       cdkDropList
       [cdkDropListData]="dataSource.data"
       (cdkDropListDropped)="drop($event)"
       cdkDropListOrientation="vertical"
     >
-      <mat-tree-node 
-        *matTreeNodeDef="let node" 
+      <mat-tree-node
+        *matTreeNodeDef="let node"
         matTreeNodePadding
         cdkDrag
         [cdkDragData]="node"
@@ -75,7 +61,7 @@ export class DynamicFlatNode {
           {{ node.item }}
         </div>
       </mat-tree-node>
-      
+
       <mat-tree-node
         *matTreeNodeDef="let node; when: hasChild"
         matTreeNodePadding
@@ -95,7 +81,9 @@ export class DynamicFlatNode {
             class="toggle-button"
           >
             <mat-icon class="mat-icon-rtl-mirror">
-              {{ treeControl.isExpanded(node) ? "expand_more" : "chevron_right" }}
+              {{
+                treeControl.isExpanded(node) ? "expand_more" : "chevron_right"
+              }}
             </mat-icon>
           </button>
           <span cdkDragHandle class="drag-handle">
@@ -103,14 +91,14 @@ export class DynamicFlatNode {
           </span>
           <span class="node-label">{{ node.item }}</span>
         </div>
-        
+
         @if (node.isLoading()) {
-          <mat-progress-bar
-            mode="indeterminate"
-            class="example-tree-progress-bar"
-          ></mat-progress-bar>
+        <mat-progress-bar
+          mode="indeterminate"
+          class="example-tree-progress-bar"
+        ></mat-progress-bar>
         }
-        
+
         <div *cdkDragPlaceholder class="drag-placeholder">
           {{ node.item }}
         </div>
@@ -243,7 +231,7 @@ export class TreeDynamicExample {
   drop(event: CdkDragDrop<DynamicFlatNode[]>) {
     const draggedNode = event.item.data as DynamicFlatNode;
     const targetIndex = event.currentIndex;
-    
+
     if (event.previousIndex === event.currentIndex) {
       return; // No change in position
     }
@@ -251,7 +239,7 @@ export class TreeDynamicExample {
     // Find the target position and determine new parent
     const targetNode = this.findTargetNode(targetIndex, draggedNode);
     const oldParent = this.findParentNode(draggedNode);
-    
+
     if (!targetNode || !oldParent) {
       return; // Invalid drop target
     }
@@ -270,28 +258,31 @@ export class TreeDynamicExample {
     );
   }
 
-  private findTargetNode(targetIndex: number, draggedNode: DynamicFlatNode): {
+  private findTargetNode(
+    targetIndex: number,
+    draggedNode: DynamicFlatNode
+  ): {
     newParent: DynamicFlatNode;
     index: number;
   } | null {
     const data = this.dataSource.data;
-    
+
     if (targetIndex >= data.length) {
       // Dropped at the end - add to root level
       const rootParent = this.createVirtualRootNode();
       return {
         newParent: rootParent,
-        index: this.getRootLevelChildren().length
+        index: this.getRootLevelChildren().length,
       };
     }
 
     const targetNode = data[targetIndex];
-    
+
     // If target is expanded and has children, make it the parent
     if (this.treeControl.isExpanded(targetNode) && targetNode.expandable) {
       return {
         newParent: targetNode,
-        index: 0
+        index: 0,
       };
     }
 
@@ -301,20 +292,24 @@ export class TreeDynamicExample {
       // Target is at root level
       const rootParent = this.createVirtualRootNode();
       const rootChildren = this.getRootLevelChildren();
-      const targetIndexInParent = rootChildren.findIndex(n => n.item === targetNode.item);
+      const targetIndexInParent = rootChildren.findIndex(
+        (n) => n.item === targetNode.item
+      );
       return {
         newParent: rootParent,
-        index: targetIndexInParent + 1
+        index: targetIndexInParent + 1,
       };
     }
 
     // Find index within parent's children
     const parentChildren = this.getChildrenOfNode(targetParent);
-    const targetIndexInParent = parentChildren.findIndex(n => n.item === targetNode.item);
-    
+    const targetIndexInParent = parentChildren.findIndex(
+      (n) => n.item === targetNode.item
+    );
+
     return {
       newParent: targetParent,
-      index: targetIndexInParent + 1
+      index: targetIndexInParent + 1,
     };
   }
 
@@ -335,11 +330,11 @@ export class TreeDynamicExample {
 
   private createVirtualRootNode(): DynamicFlatNode {
     // Create a virtual root node for root-level operations
-    return new DynamicFlatNode('__ROOT__', -1, true);
+    return new DynamicFlatNode("__ROOT__", -1, true);
   }
 
   private getRootLevelChildren(): DynamicFlatNode[] {
-    return this.dataSource.data.filter(node => node.level === 0);
+    return this.dataSource.data.filter((node) => node.level === 0);
   }
 
   private getChildrenOfNode(parentNode: DynamicFlatNode): DynamicFlatNode[] {
@@ -357,33 +352,42 @@ export class TreeDynamicExample {
     return children;
   }
 
-  private isDescendant(potentialDescendant: DynamicFlatNode, ancestor: DynamicFlatNode): boolean {
-    if (potentialDescendant.item === '__ROOT__') return false;
-    
+  private isDescendant(
+    potentialDescendant: DynamicFlatNode,
+    ancestor: DynamicFlatNode
+  ): boolean {
+    if (potentialDescendant.item === "__ROOT__") return false;
+
     const ancestorIndex = this.dataSource.data.indexOf(ancestor);
     const descendantIndex = this.dataSource.data.indexOf(potentialDescendant);
-    
+
     if (ancestorIndex === -1 || descendantIndex === -1) return false;
-    
+
     // Check if descendant comes after ancestor and has higher level
-    return descendantIndex > ancestorIndex && 
-           potentialDescendant.level > ancestor.level &&
-           this.isWithinSubtree(potentialDescendant, ancestor);
+    return (
+      descendantIndex > ancestorIndex &&
+      potentialDescendant.level > ancestor.level &&
+      this.isWithinSubtree(potentialDescendant, ancestor)
+    );
   }
 
-  private isWithinSubtree(node: DynamicFlatNode, subtreeRoot: DynamicFlatNode): boolean {
+  private isWithinSubtree(
+    node: DynamicFlatNode,
+    subtreeRoot: DynamicFlatNode
+  ): boolean {
     const rootIndex = this.dataSource.data.indexOf(subtreeRoot);
     const nodeIndex = this.dataSource.data.indexOf(node);
-    
-    if (rootIndex === -1 || nodeIndex === -1 || nodeIndex <= rootIndex) return false;
-    
+
+    if (rootIndex === -1 || nodeIndex === -1 || nodeIndex <= rootIndex)
+      return false;
+
     // Find the end of the subtree
     for (let i = rootIndex + 1; i < this.dataSource.data.length; i++) {
       if (this.dataSource.data[i].level <= subtreeRoot.level) {
         return nodeIndex < i;
       }
     }
-    
+
     return true; // Node is within subtree that extends to end of data
   }
 }

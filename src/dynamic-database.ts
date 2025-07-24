@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
-import { DynamicFlatNode } from "./tree-dynamic-example";
 import { treeData } from "./tree-data";
+import { DynamicFlatNode } from "./dynamic-flat-node";
 
 /**
  * Database for dynamic data. When expanding a node in the tree, the data source will need to fetch
