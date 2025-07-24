@@ -35,25 +35,44 @@ export class DynamicDatabase {
   }
 
   moveNode(nodeToMove: string, newParentNode: string, oldParentNode: string, index?: number): void {
-    // Remove from old parent
-    const oldParentChildren = this.dataMap.get(oldParentNode);
-    if (oldParentChildren) {
-      const oldIndex = oldParentChildren.indexOf(nodeToMove);
-      if (oldIndex > -1) {
-        oldParentChildren.splice(oldIndex, 1);
+    // Handle root level operations
+    if (oldParentNode === '__ROOT__') {
+      // Remove from root level
+      const rootIndex = this.rootLevelNodes.indexOf(nodeToMove);
+      if (rootIndex > -1) {
+        this.rootLevelNodes.splice(rootIndex, 1);
+      }
+    } else {
+      // Remove from old parent
+      const oldParentChildren = this.dataMap.get(oldParentNode);
+      if (oldParentChildren) {
+        const oldIndex = oldParentChildren.indexOf(nodeToMove);
+        if (oldIndex > -1) {
+          oldParentChildren.splice(oldIndex, 1);
+        }
       }
     }
     
     // Add to new parent at specific index
-    if (!this.dataMap.has(newParentNode)) {
-      this.dataMap.set(newParentNode, []);
-    }
-    const newParentChildren = this.dataMap.get(newParentNode)!;
-    
-    if (index !== undefined && index >= 0 && index <= newParentChildren.length) {
-      newParentChildren.splice(index, 0, nodeToMove);
+    if (newParentNode === '__ROOT__') {
+      // Add to root level
+      if (index !== undefined && index >= 0 && index <= this.rootLevelNodes.length) {
+        this.rootLevelNodes.splice(index, 0, nodeToMove);
+      } else {
+        this.rootLevelNodes.push(nodeToMove);
+      }
     } else {
-      newParentChildren.push(nodeToMove);
+      // Add to regular parent
+      if (!this.dataMap.has(newParentNode)) {
+        this.dataMap.set(newParentNode, []);
+      }
+      const newParentChildren = this.dataMap.get(newParentNode)!;
+      
+      if (index !== undefined && index >= 0 && index <= newParentChildren.length) {
+        newParentChildren.splice(index, 0, nodeToMove);
+      } else {
+        newParentChildren.push(nodeToMove);
+      }
     }
   }
 

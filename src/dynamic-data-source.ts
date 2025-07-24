@@ -59,19 +59,32 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   }
 
   moveNode(nodeToMove: DynamicFlatNode, newParentNode: DynamicFlatNode, oldParentNode: DynamicFlatNode, index?: number): void {
-    this._database.moveNode(nodeToMove.item, newParentNode.item, oldParentNode.item, index);
+    // Handle virtual root node
+    const newParentKey = newParentNode.item === '__ROOT__' ? '__ROOT__' : newParentNode.item;
+    const oldParentKey = oldParentNode.item === '__ROOT__' ? '__ROOT__' : oldParentNode.item;
+    
+    if (newParentKey === '__ROOT__') {
+      // Moving to root level
+      this.moveToRootLevel(nodeToMove, oldParentKey, index);
+    } else {
+      this._database.moveNode(nodeToMove.item, newParentKey, oldParentKey, index);
+    }
     
     // Remove node and its descendants from current position
     this.removeNodeFromDisplay(nodeToMove);
     
-    // Refresh old parent's children if expanded
-    if (this._treeControl.isExpanded(oldParentNode)) {
+    // Refresh old parent's children if expanded (skip virtual root)
+    if (oldParentNode.item !== '__ROOT__' && this._treeControl.isExpanded(oldParentNode)) {
       this.refreshParentChildren(oldParentNode);
+    } else if (oldParentNode.item === '__ROOT__') {
+      this.refreshRootLevel();
     }
     
-    // Refresh new parent's children if expanded
-    if (this._treeControl.isExpanded(newParentNode)) {
+    // Refresh new parent's children if expanded (skip virtual root)
+    if (newParentNode.item !== '__ROOT__' && this._treeControl.isExpanded(newParentNode)) {
       this.refreshParentChildren(newParentNode);
+    } else if (newParentNode.item === '__ROOT__') {
+      this.refreshRootLevel();
     }
   }
 
@@ -86,6 +99,68 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     if (parentNode && this._treeControl.isExpanded(parentNode)) {
       this.refreshParentChildren(parentNode);
     }
+  }
+
+  private moveToRootLevel(nodeToMove: DynamicFlatNode, oldParentKey: string, index?: number): void {
+    // Remove from old parent
+    if (oldParentKey !== '__ROOT__') {
+      const oldParentChildren = this._database.dataMap.get(oldParentKey);
+      if (oldParentChildren) {
+        const oldIndex = oldParentChildren.indexOf(nodeToMove.item);
+        if (oldIndex > -1) {
+          oldParentChildren.splice(oldIndex, 1);
+        }
+      }
+    } else {
+      // Remove from root level
+      const rootIndex = this._database.rootLevelNodes.indexOf(nodeToMove.item);
+      if (rootIndex > -1) {
+        this._database.rootLevelNodes.splice(rootIndex, 1);
+      }
+    }
+    
+    // Add to root level at specific index
+    if (index !== undefined && index >= 0 && index <= this._database.rootLevelNodes.length) {
+      this._database.rootLevelNodes.splice(index, 0, nodeToMove.item);
+    } else {
+      this._database.rootLevelNodes.push(nodeToMove.item);
+    }
+  }
+
+  private refreshRootLevel(): void {
+    // Rebuild the entire data array starting with root nodes
+    const newData: DynamicFlatNode[] = [];
+    
+    this._database.rootLevelNodes.forEach(rootName => {
+      const rootNode = new DynamicFlatNode(rootName, 0, this._database.isExpandable(rootName));
+      newData.push(rootNode);
+      
+      // If root node is expanded, add its children
+      if (this._treeControl.isExpanded(rootNode)) {
+        this.addExpandedChildren(rootNode, newData);
+      }
+    });
+    
+    this.data = newData;
+  }
+
+  private addExpandedChildren(parentNode: DynamicFlatNode, dataArray: DynamicFlatNode[]): void {
+    const children = this._database.getChildren(parentNode.item);
+    if (!children) return;
+    
+    children.forEach(childName => {
+      const childNode = new DynamicFlatNode(
+        childName,
+        parentNode.level + 1,
+        this._database.isExpandable(childName)
+      );
+      dataArray.push(childNode);
+      
+      // Recursively add expanded children
+      if (this._treeControl.isExpanded(childNode)) {
+        this.addExpandedChildren(childNode, dataArray);
+      }
+    });
   }
 
   private refreshParentChildren(parentNode: DynamicFlatNode): void {
