@@ -4,6 +4,7 @@ import {
   DataSource,
 } from "@angular/cdk/collections";
 import { FlatTreeControl } from "@angular/cdk/tree";
+import { inject } from "@angular/core";
 import { BehaviorSubject, merge, Observable } from "rxjs";
 import { map } from "rxjs/operators";
 import { DynamicDatabase } from "./dynamic-database";
@@ -17,7 +18,7 @@ import { DynamicFlatNode } from "./dynamic-flat-node";
  * structure.
  */
 export class DynamicDataSource implements DataSource<DynamicFlatNode> {
-  _database: DynamicDatabase;
+  private readonly _database = inject(DynamicDatabase);
   dataChange = new BehaviorSubject<DynamicFlatNode[]>([]);
 
   get data(): DynamicFlatNode[] {
@@ -28,9 +29,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     this.dataChange.next(value);
   }
 
-  constructor(private _treeControl: FlatTreeControl<DynamicFlatNode>) {
-    this._database = new DynamicDatabase();
-  }
+  constructor(private _treeControl: FlatTreeControl<DynamicFlatNode>) {}
 
   connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {
     this._treeControl.expansionModel.changed.subscribe((change) => {
