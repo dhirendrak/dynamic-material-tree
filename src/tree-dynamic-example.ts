@@ -1,17 +1,16 @@
-import { FlatTreeControl } from "@angular/cdk/tree";
 import {
-  CdkDragDrop,
-  CdkDropList,
   CdkDrag,
+  CdkDragDrop,
   CdkDragHandle,
   CdkDragPlaceholder,
+  CdkDropList,
 } from "@angular/cdk/drag-drop";
-import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
-import { MatProgressBarModule } from "@angular/material/progress-bar";
-import { MatIconModule } from "@angular/material/icon";
+import { FlatTreeControl } from "@angular/cdk/tree";
+import { ChangeDetectionStrategy, Component } from "@angular/core";
 import { MatButtonModule } from "@angular/material/button";
+import { MatIconModule } from "@angular/material/icon";
+import { MatProgressBarModule } from "@angular/material/progress-bar";
 import { MatTreeModule } from "@angular/material/tree";
-import { DynamicDatabase } from "./dynamic-database";
 import { DynamicDataSource } from "./dynamic-data-source";
 import { DynamicFlatNode } from "./dynamic-flat-node";
 
