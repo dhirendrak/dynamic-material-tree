@@ -17,6 +17,7 @@ import { DynamicFlatNode } from "./dynamic-flat-node";
  * structure.
  */
 export class DynamicDataSource implements DataSource<DynamicFlatNode> {
+  _database: DynamicDatabase;
   dataChange = new BehaviorSubject<DynamicFlatNode[]>([]);
 
   get data(): DynamicFlatNode[] {
@@ -27,10 +28,9 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     this.dataChange.next(value);
   }
 
-  constructor(
-    private _treeControl: FlatTreeControl<DynamicFlatNode>,
-    private _database: DynamicDatabase
-  ) {}
+  constructor(private _treeControl: FlatTreeControl<DynamicFlatNode>) {
+    this._database = new DynamicDatabase();
+  }
 
   connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {
     this._treeControl.expansionModel.changed.subscribe((change) => {

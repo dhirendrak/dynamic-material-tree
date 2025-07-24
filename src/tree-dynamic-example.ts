@@ -205,15 +205,16 @@ import { DynamicFlatNode } from "./dynamic-flat-node";
 })
 export class TreeDynamicExample {
   constructor() {
-    const database = inject(DynamicDatabase);
-
     this.treeControl = new FlatTreeControl<DynamicFlatNode>(
       this.getLevel,
       this.isExpandable
     );
-    this.dataSource = new DynamicDataSource(this.treeControl, database);
 
-    this.dataSource.data = database.initialData();
+    this.dataSource = new DynamicDataSource(this.treeControl);
+
+    this.dataSource.data = ["Fruits", "Vegetables"].map(
+      (name) => new DynamicFlatNode(name, 0, true)
+    );
   }
 
   treeControl: FlatTreeControl<DynamicFlatNode>;
