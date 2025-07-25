@@ -256,6 +256,12 @@ export class TreeDynamicExample {
       return; // Invalid drop target
     }
 
+    // Restrict root level node creation - prevent dropping to root level
+    if (targetNode.newParent.item === "__ROOT__") {
+      console.log('🌳 [TreeDynamicExample] Root level drops are restricted, returning');
+      return;
+    }
+
     // Prevent dropping a node into itself or its descendants
     if (this.isDescendant(targetNode.newParent, draggedNode)) {
       console.log('🌳 [TreeDynamicExample] Cannot drop node into its descendant, returning');
@@ -283,14 +289,9 @@ export class TreeDynamicExample {
     console.log('🌳 [TreeDynamicExample] findTargetNode() called with targetIndex:', targetIndex, 'data length:', data.length);
 
     if (targetIndex >= data.length) {
-      // Dropped at the end - add to root level
-      const rootParent = this.createVirtualRootNode();
-      const result = {
-        newParent: rootParent,
-        index: this.getRootLevelChildren().length,
-      };
-      console.log('🌳 [TreeDynamicExample] Target at end, returning root parent with index:', result.index);
-      return result;
+      // Dropped at the end - restrict root level drops
+      console.log('🌳 [TreeDynamicExample] Target at end, but root level drops are restricted');
+      return null;
     }
 
     const targetNode = data[targetIndex];
@@ -311,18 +312,9 @@ export class TreeDynamicExample {
     console.log('🌳 [TreeDynamicExample] Target parent:', targetParent?.item || 'ROOT');
     
     if (!targetParent) {
-      // Target is at root level
-      const rootParent = this.createVirtualRootNode();
-      const rootChildren = this.getRootLevelChildren();
-      const targetIndexInParent = rootChildren.findIndex(
-        (n) => n.item === targetNode.item
-      );
-      const result = {
-        newParent: rootParent,
-        index: targetIndexInParent + 1,
-      };
-      console.log('🌳 [TreeDynamicExample] Target at root level, index in parent:', targetIndexInParent, 'new index:', result.index);
-      return result;
+      // Target is at root level - restrict root level drops
+      console.log('🌳 [TreeDynamicExample] Target at root level, but root level drops are restricted');
+      return null;
     }
 
     // Find index within parent's children
