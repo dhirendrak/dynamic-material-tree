@@ -63,16 +63,27 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     oldParentNode: DynamicFlatNode,
     index?: number
   ): void {
+    console.log('📊 [DynamicDataSource] moveNode() called:', {
+      nodeToMove: nodeToMove.item,
+      newParent: newParentNode.item,
+      oldParent: oldParentNode.item,
+      index
+    });
+
     // Handle virtual root node
     const newParentKey =
       newParentNode.item === "__ROOT__" ? "__ROOT__" : newParentNode.item;
     const oldParentKey =
       oldParentNode.item === "__ROOT__" ? "__ROOT__" : oldParentNode.item;
 
+    console.log('📊 [DynamicDataSource] Parent keys:', { newParentKey, oldParentKey });
+
     if (newParentKey === "__ROOT__") {
       // Moving to root level
+      console.log('📊 [DynamicDataSource] Moving to root level');
       this.moveToRootLevel(nodeToMove, oldParentKey, index);
     } else {
+      console.log('📊 [DynamicDataSource] Moving to regular parent, calling database.moveNode()');
       this._database.moveNode(
         nodeToMove.item,
         newParentKey,
@@ -82,6 +93,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     }
 
     // Remove node and its descendants from current position
+    console.log('📊 [DynamicDataSource] Removing node from display');
     this.removeNodeFromDisplay(nodeToMove);
 
     // Refresh old parent's children if expanded (skip virtual root)
@@ -89,8 +101,10 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       oldParentNode.item !== "__ROOT__" &&
       this._treeControl.isExpanded(oldParentNode)
     ) {
+      console.log('📊 [DynamicDataSource] Refreshing old parent children:', oldParentNode.item);
       this.refreshParentChildren(oldParentNode);
     } else if (oldParentNode.item === "__ROOT__") {
+      console.log('📊 [DynamicDataSource] Refreshing root level (old parent)');
       this.refreshRootLevel();
     }
 
@@ -99,10 +113,14 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       newParentNode.item !== "__ROOT__" &&
       this._treeControl.isExpanded(newParentNode)
     ) {
+      console.log('📊 [DynamicDataSource] Refreshing new parent children:', newParentNode.item);
       this.refreshParentChildren(newParentNode);
     } else if (newParentNode.item === "__ROOT__") {
+      console.log('📊 [DynamicDataSource] Refreshing root level (new parent)');
       this.refreshRootLevel();
     }
+
+    console.log('📊 [DynamicDataSource] moveNode() completed');
   }
 
   removeNode(nodeToRemove: DynamicFlatNode): void {
@@ -153,10 +171,12 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
   }
 
   private refreshRootLevel(): void {
+    console.log('📊 [DynamicDataSource] refreshRootLevel() called');
     // Rebuild the entire data array starting with root nodes
     const newData: DynamicFlatNode[] = [];
 
     this._database.rootLevelNodes.forEach((rootName) => {
+      console.log('📊 [DynamicDataSource] Processing root node:', rootName);
       const rootNode = new DynamicFlatNode(
         rootName,
         0,
@@ -166,10 +186,12 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
       // If root node is expanded, add its children
       if (this._treeControl.isExpanded(rootNode)) {
+        console.log('📊 [DynamicDataSource] Root node is expanded, adding children');
         this.addExpandedChildren(rootNode, newData);
       }
     });
 
+    console.log('📊 [DynamicDataSource] Setting new data with', newData.length, 'nodes');
     this.data = newData;
   }
 
@@ -230,7 +252,12 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
   private removeNodeFromDisplay(node: DynamicFlatNode): void {
     const nodeIndex = this.data.indexOf(node);
-    if (nodeIndex === -1) return;
+    console.log('📊 [DynamicDataSource] removeNodeFromDisplay() for:', node.item, 'at index:', nodeIndex);
+    
+    if (nodeIndex === -1) {
+      console.log('📊 [DynamicDataSource] Node not found in display, returning');
+      return;
+    }
 
     // Count descendants to remove
     let count = 1; // Include the node itself
@@ -242,6 +269,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
       count++;
     }
 
+    console.log('📊 [DynamicDataSource] Removing', count, 'nodes from display starting at index:', nodeIndex);
     this.data.splice(nodeIndex, count);
     this.dataChange.next(this.data);
   }
@@ -261,6 +289,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
   /** Handle expand/collapse behaviors */
   handleTreeControl(change: SelectionChange<DynamicFlatNode>) {
+    console.log('📊 [DynamicDataSource] handleTreeControl() called with change:', {
+      added: change.added?.map(n => n.item),
+      removed: change.removed?.map(n => n.item)
+    });
+    
     if (change.added) {
       change.added.forEach((node) => this.toggleNode(node, true));
     }
@@ -277,16 +310,25 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
    */
   async toggleNode(node: DynamicFlatNode, expand: boolean) {
     const index = this.data.indexOf(node);
+    console.log('📊 [DynamicDataSource] toggleNode() called:', {
+      node: node.item,
+      expand,
+      index
+    });
+    
     if (index < 0) {
+      console.log('📊 [DynamicDataSource] Cannot find node in data, returning');
       // Cannot find the node, no op
       return;
     }
 
     if (expand) {
+      console.log('📊 [DynamicDataSource] Expanding node, setting loading state');
       node.isLoading.set(true);
 
       try {
         const children = await this._database.getChildrenAsync(node.item);
+        console.log('📊 [DynamicDataSource] Received children:', children);
 
         if (children) {
           const nodes = children.map(
@@ -297,9 +339,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
                 this._database.isExpandable(name)
               )
           );
+          console.log('📊 [DynamicDataSource] Adding', nodes.length, 'child nodes at index:', index + 1);
           this.data.splice(index + 1, 0, ...nodes);
         }
       } finally {
+        console.log('📊 [DynamicDataSource] Clearing loading state');
         node.isLoading.set(false);
       }
     } else {
@@ -310,10 +354,12 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
         i < this.data.length && this.data[i].level > node.level;
         i++, count++
       ) {}
+      console.log('📊 [DynamicDataSource] Collapsing node, removing', count, 'descendants');
       this.data.splice(index + 1, count);
     }
 
     // notify the change
+    console.log('📊 [DynamicDataSource] Notifying data change, new data length:', this.data.length);
     this.dataChange.next(this.data);
   }
 }
