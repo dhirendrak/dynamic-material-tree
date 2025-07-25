@@ -231,14 +231,14 @@ export class TreeDynamicExample {
     const draggedNode = event.item.data as DynamicFlatNode;
     const targetIndex = event.currentIndex;
 
-    console.log('🌳 [TreeDynamicExample] drop() called:', {
+    console.log("🌳 [TreeDynamicExample] drop() called:", {
       draggedNode: draggedNode.item,
       previousIndex: event.previousIndex,
-      currentIndex: event.currentIndex
+      currentIndex: event.currentIndex,
     });
 
     if (event.previousIndex === event.currentIndex) {
-      console.log('🌳 [TreeDynamicExample] No position change, returning');
+      console.log("🌳 [TreeDynamicExample] No position change, returning");
       return; // No change in position
     }
 
@@ -246,29 +246,44 @@ export class TreeDynamicExample {
     const targetNode = this.findTargetNode(targetIndex, draggedNode);
     const oldParent = this.findParentNode(draggedNode);
 
-    console.log('🌳 [TreeDynamicExample] Target analysis:', {
-      targetNode: targetNode ? { newParent: targetNode.newParent.item, index: targetNode.index } : null,
-      oldParent: oldParent?.item
+    console.log("🌳 [TreeDynamicExample] Target analysis:", {
+      targetNode: targetNode
+        ? { newParent: targetNode.newParent.item, index: targetNode.index }
+        : null,
+      oldParent: oldParent?.item,
     });
 
-    if (!targetNode || !oldParent) {
-      console.log('🌳 [TreeDynamicExample] Invalid drop target, returning');
+    if (!targetNode) {
+      console.log("🌳 [TreeDynamicExample] Invalid drop target, returning");
       return; // Invalid drop target
+    }
+
+    // If oldParent is null, it means the dragged node is at root level
+    // Since we're restricting root level operations, we need to handle this
+    if (!oldParent) {
+      console.log(
+        "🌳 [TreeDynamicExample] Cannot move root level nodes, returning"
+      );
+      return;
     }
 
     // Restrict root level node creation - prevent dropping to root level
     if (targetNode.newParent.item === "__ROOT__") {
-      console.log('🌳 [TreeDynamicExample] Root level drops are restricted, returning');
+      console.log(
+        "🌳 [TreeDynamicExample] Root level drops are restricted, returning"
+      );
       return;
     }
 
     // Prevent dropping a node into itself or its descendants
     if (this.isDescendant(targetNode.newParent, draggedNode)) {
-      console.log('🌳 [TreeDynamicExample] Cannot drop node into its descendant, returning');
+      console.log(
+        "🌳 [TreeDynamicExample] Cannot drop node into its descendant, returning"
+      );
       return;
     }
 
-    console.log('🌳 [TreeDynamicExample] Calling dataSource.moveNode()');
+    console.log("🌳 [TreeDynamicExample] Calling dataSource.moveNode()");
     // Move the node in the data source
     this.dataSource.moveNode(
       draggedNode,
@@ -286,16 +301,28 @@ export class TreeDynamicExample {
     index: number;
   } | null {
     const data = this.dataSource.data;
-    console.log('🌳 [TreeDynamicExample] findTargetNode() called with targetIndex:', targetIndex, 'data length:', data.length);
+    console.log(
+      "🌳 [TreeDynamicExample] findTargetNode() called with targetIndex:",
+      targetIndex,
+      "data length:",
+      data.length
+    );
 
     if (targetIndex >= data.length) {
       // Dropped at the end - restrict root level drops
-      console.log('🌳 [TreeDynamicExample] Target at end, but root level drops are restricted');
+      console.log(
+        "🌳 [TreeDynamicExample] Target at end, but root level drops are restricted"
+      );
       return null;
     }
 
     const targetNode = data[targetIndex];
-    console.log('🌳 [TreeDynamicExample] Target node:', targetNode.item, 'expanded:', this.treeControl.isExpanded(targetNode));
+    console.log(
+      "🌳 [TreeDynamicExample] Target node:",
+      targetNode.item,
+      "expanded:",
+      this.treeControl.isExpanded(targetNode)
+    );
 
     // If target is expanded and has children, make it the parent
     if (this.treeControl.isExpanded(targetNode) && targetNode.expandable) {
@@ -303,17 +330,24 @@ export class TreeDynamicExample {
         newParent: targetNode,
         index: 0,
       };
-      console.log('🌳 [TreeDynamicExample] Target is expanded, making it parent with index 0');
+      console.log(
+        "🌳 [TreeDynamicExample] Target is expanded, making it parent with index 0"
+      );
       return result;
     }
 
     // Otherwise, find the parent of the target node and insert after target
     const targetParent = this.findParentNode(targetNode);
-    console.log('🌳 [TreeDynamicExample] Target parent:', targetParent?.item || 'ROOT');
-    
+    console.log(
+      "🌳 [TreeDynamicExample] Target parent:",
+      targetParent?.item || "ROOT"
+    );
+
     if (!targetParent) {
       // Target is at root level - restrict root level drops
-      console.log('🌳 [TreeDynamicExample] Target at root level, but root level drops are restricted');
+      console.log(
+        "🌳 [TreeDynamicExample] Target at root level, but root level drops are restricted"
+      );
       return null;
     }
 
@@ -327,28 +361,50 @@ export class TreeDynamicExample {
       newParent: targetParent,
       index: targetIndexInParent + 1,
     };
-    console.log('🌳 [TreeDynamicExample] Target index in parent:', targetIndexInParent, 'new index:', result.index);
+    console.log(
+      "🌳 [TreeDynamicExample] Target index in parent:",
+      targetIndexInParent,
+      "new index:",
+      result.index
+    );
     return result;
   }
 
   private findParentNode(childNode: DynamicFlatNode): DynamicFlatNode | null {
     const childIndex = this.dataSource.data.indexOf(childNode);
-    console.log('🌳 [TreeDynamicExample] findParentNode() for:', childNode.item, 'at index:', childIndex, 'level:', childNode.level);
-    
-    if (childIndex === -1 || childNode.level === 0) {
-      console.log('🌳 [TreeDynamicExample] Child is root level or not found, returning virtual root');
-      return this.createVirtualRootNode();
+    console.log(
+      "🌳 [TreeDynamicExample] findParentNode() for:",
+      childNode.item,
+      "at index:",
+      childIndex,
+      "level:",
+      childNode.level
+    );
+
+    if (childIndex === -1) {
+      console.log("🌳 [TreeDynamicExample] Child not found in data");
+      return null;
+    }
+
+    if (childNode.level === 0) {
+      console.log(
+        "🌳 [TreeDynamicExample] Child is root level, returning null (no parent)"
+      );
+      return null;
     }
 
     // Look backwards for parent (node with level one less)
     for (let i = childIndex - 1; i >= 0; i--) {
       if (this.dataSource.data[i].level === childNode.level - 1) {
-        console.log('🌳 [TreeDynamicExample] Found parent:', this.dataSource.data[i].item);
+        console.log(
+          "🌳 [TreeDynamicExample] Found parent:",
+          this.dataSource.data[i].item
+        );
         return this.dataSource.data[i];
       }
     }
-    console.log('🌳 [TreeDynamicExample] No parent found, returning virtual root');
-    return this.createVirtualRootNode();
+    console.log("🌳 [TreeDynamicExample] No parent found");
+    return null;
   }
 
   private createVirtualRootNode(): DynamicFlatNode {
